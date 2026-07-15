@@ -1,0 +1,15 @@
+{
+  "name": "float-astraagents",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Autonomous business functions governed by Astra before reaching reality.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "node scripts/build-check.js",
+    "test": "node --test",
+    "simulate": "node src/simulate.js",
+    "run:real-sales-loop": "node src/run-real-sales-loop.js",
+    "start": "node server.js"
+  }
+}
