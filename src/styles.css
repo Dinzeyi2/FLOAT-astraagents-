@@ -12,3 +12,8 @@ h1 { font-size: clamp(44px, 7vw, 82px); line-height: .92; margin: 14px 0; } h2 {
 .grid, .objectives { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; } .department, .objectives article { padding: 22px; } .department svg { color: #79f2c0; } .department strong, .objectives span { color: #79f2c0; } .department p, .objectives p { color: #b7c7d8; }
 .table { overflow: hidden; } .row { display: grid; grid-template-columns: 130px 100px 70px 1fr; gap: 16px; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.08); } .row:last-child { border-bottom: 0; } .row p { margin: 0; color: #b7c7d8; } .row b { text-transform: capitalize; } .reality { color: #79f2c0; } .review { color: #ffd166; } .contained { color: #ff6b6b; }
 @media (max-width: 820px) { .hero { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
+.control-panel { background: rgba(121,242,192,.06); border: 1px solid rgba(121,242,192,.22); padding: 24px; border-radius: 28px; }
+.control-panel input { width: min(520px, 100%); padding: 14px 16px; border-radius: 14px; border: 1px solid #29465c; background: #071017; color: #e8f2ff; margin: 10px 0 16px; }
+button { background: #79f2c0; color: #071017; border: 0; cursor: pointer; padding: 14px 18px; border-radius: 999px; font-weight: 800; }
+.secondary-button { background: transparent; color: #e8f2ff; border: 1px solid #29465c; }
+pre { white-space: pre-wrap; background: rgba(7,16,23,.72); color: #b7c7d8; border-radius: 18px; padding: 16px; overflow: auto; }

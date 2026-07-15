@@ -14,6 +14,8 @@ const decisionRoutes = new Set(['/decisions', '/api/decisions']);
 const emailRoutes = new Set(['/emails', '/api/emails']);
 const replyRoutes = new Set(['/replies', '/api/replies', '/read-replies', '/api/read-replies']);
 const meetingRoutes = new Set(['/meetings', '/api/meetings']);
+const stopRoutes = new Set(['/stop', '/api/stop', '/agents/stop', '/api/agents/stop', '/sales/stop', '/api/sales/stop']);
+const automationState = { running: false, lastStartedAt: null, lastStoppedAt: null, lastRun: null };
 
 createServer(async (req, res) => {
   try {
@@ -21,6 +23,7 @@ createServer(async (req, res) => {
     if (pathname === '/health') return json(res, 200, { status: 'ok' });
     if (pathname === '/routes') return json(res, 200, routeList());
     if (statusRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicStatus());
+    if (stopRoutes.has(pathname) && ['GET', 'POST'].includes(req.method)) return stopAgents(req, res);
     if (summaryRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicSummary());
     if (decisionRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicDecisions());
     if (emailRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicEmails());
@@ -45,6 +48,8 @@ createServer(async (req, res) => {
 
 async function runRealSalesLoop(req, res, pathname) {
   if (pathname.includes('simulate') || !isAuthorized(req)) return json(res, 200, publicRunDryRun(pathname));
+  automationState.running = true;
+  automationState.lastStartedAt = new Date().toISOString();
 
   const production = createProductionLoopFromEnv();
   const leads = await production.leadSource.listLeads();
@@ -56,7 +61,15 @@ async function runRealSalesLoop(req, res, pathname) {
     results.push(await runCuratedLeadOutboundLoop({ lead, ...production }));
   }
 
-  return json(res, 200, { mode: 'real', processed: selectedLeads.length, results });
+  automationState.lastRun = { processed: selectedLeads.length, finishedAt: new Date().toISOString() };
+  return json(res, 200, { mode: 'real', running: automationState.running, processed: selectedLeads.length, results });
+}
+
+function stopAgents(req, res) {
+  if (!isAuthorized(req)) return json(res, 200, { mode: 'dry_run', running: automationState.running, note: 'Send Authorization: Bearer <RUN_TOKEN> to stop real agents.' });
+  automationState.running = false;
+  automationState.lastStoppedAt = new Date().toISOString();
+  return json(res, 200, { mode: 'real', running: false, stopped_at: automationState.lastStoppedAt });
 }
 
 async function readProductionCounts(req, res) {
@@ -70,6 +83,10 @@ function publicStatus() {
     status: 'ok',
     service: 'astra-autonomous-sales-team',
     mode: 'public_status',
+    running: automationState.running,
+    last_started_at: automationState.lastStartedAt,
+    last_stopped_at: automationState.lastStoppedAt,
+    last_run: automationState.lastRun,
     real_execution_requires: 'Authorization: Bearer <RUN_TOKEN>'
   };
 }
@@ -81,6 +98,10 @@ function publicSummary() {
     daily_decisions_modeled: summary.total,
     annualized_decisions_modeled: summary.annualized,
     routes: summary.byOutcome,
+    running: automationState.running,
+    last_started_at: automationState.lastStartedAt,
+    last_stopped_at: automationState.lastStoppedAt,
+    last_run: automationState.lastRun,
     real_execution_requires: 'Authorization: Bearer <RUN_TOKEN>'
   };
 }
@@ -139,7 +160,8 @@ function publicRunDryRun(pathname) {
     processed: 0,
     modeled_agents: summary.agents,
     modeled_daily_decisions: summary.total,
-    note: 'No real emails were sent. Send Authorization: Bearer <RUN_TOKEN> to execute the real ContactOut → Astra → Resend loop.'
+    running: automationState.running,
+    note: 'No real emails were sent. Send Authorization: Bearer <RUN_TOKEN> to start the real ContactOut → Astra → Resend loop.'
   };
 }
 
@@ -149,6 +171,7 @@ function routeList() {
     discover: 'GET /routes',
     public: ['GET /status', 'GET /summary', 'GET /metrics', 'GET /decisions', 'GET /emails', 'GET /replies', 'GET /meetings'],
     run_dry_run_or_real_with_token: ['POST /run', 'POST /start', 'POST /run-agents', 'POST /agents/run', 'POST /sales/run', 'POST /workflow/start', 'POST /send-emails', 'POST /simulate'],
+    stop: ['POST /stop', 'POST /agents/stop', 'POST /sales/stop'],
     api_aliases: ['GET /api/status', 'GET /api/summary', 'GET /api/metrics', 'GET /api/decisions', 'GET /api/emails', 'GET /api/replies', 'GET /api/meetings', 'POST /api/run', 'POST /api/start', 'POST /api/agents/run', 'POST /api/sales/run', 'POST /api/workflow/start', 'POST /api/simulate'],
     auth: 'Real execution and real Astra production counts require Authorization: Bearer $RUN_TOKEN.'
   };

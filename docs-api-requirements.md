@@ -192,3 +192,25 @@ Authorization: Bearer <RUN_TOKEN>
 ```
 
 This prevents random public visitors from sending real outbound email while still making Railway health/metrics checks work without 404s.
+
+## Start and stop buttons
+
+The dashboard now has an Agent control panel. Paste `RUN_TOKEN`, then click:
+
+- **Start agents**: calls `POST /start` and runs one real ContactOut → Astra → Resend batch.
+- **Stop agents**: calls `POST /stop` and marks the agent loop stopped.
+- **Refresh status**: calls `GET /status` and shows whether the service is running.
+
+The HTTP equivalents are:
+
+```bash
+curl -X POST https://<your-railway-domain>/start \
+  -H "Authorization: Bearer $RUN_TOKEN"
+
+curl -X POST https://<your-railway-domain>/stop \
+  -H "Authorization: Bearer $RUN_TOKEN"
+
+curl https://<your-railway-domain>/status
+```
+
+Without `RUN_TOKEN`, start/stop returns a dry-run message and does not send real emails.
