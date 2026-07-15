@@ -1,9 +1,9 @@
 # Astra Autonomous Sales Team API Requirements
 
-This production wedge now uses only the connectors needed for the first real loop:
+This production wedge uses the exact ContactOut API product for your use case: **People Search API**.
 
 ```text
-ContactOut
+ContactOut People Search API
 → AI drafts email
 → Astra evaluates proposed action
 → Resend sends only if Astra returns ready_for_reality
@@ -11,6 +11,28 @@ ContactOut
 → Google Calendar books demos when a demo window exists
 → Astra records outcomes and production decision counts
 ```
+
+## ContactOut endpoint
+
+Use this endpoint:
+
+```bash
+CONTACTOUT_API_URL=https://api.contactout.com/v1/people/search
+```
+
+Why this one? Because you said you want to build targeted prospect lists. ContactOut documents that as **People Search API**, with:
+
+```http
+POST https://api.contactout.com/v1/people/search
+```
+
+The request uses the ContactOut API token header:
+
+```http
+token: <YOUR_API_TOKEN>
+```
+
+The code now posts a search body with finance buyer filters and normalizes ContactOut `profiles` into leads.
 
 ## Railway environment
 
@@ -20,14 +42,21 @@ PORT=4173
 RUN_TOKEN=<long_random_token>
 LEAD_LIMIT=1
 
-# ContactOut lead source
-CONTACTOUT_API_URL=https://api.contactout.com/v1/<your-enabled-endpoint>
+# ContactOut People Search API
+CONTACTOUT_API_URL=https://api.contactout.com/v1/people/search
 CONTACTOUT_API_TOKEN=<contactout_token>
+CONTACTOUT_JOB_TITLES=Head of Finance,VP Finance,Director of Finance,CFO
+CONTACTOUT_SENIORITY=director,vice president,cxo
+CONTACTOUT_LOCATIONS=
+CONTACTOUT_INDUSTRIES=Financial Services,Fintech,Software
+CONTACTOUT_PAGE=1
+CONTACTOUT_PAGE_SIZE=25
+DEFAULT_DEAL_VALUE_USD=42000
 
 # Astra
 ASTRA_BASE_URL=https://app.codeastra.dev
 ASTRA_API_KEY=<astra_key>
-ASTRA_WORLD_ID=<world_id>
+ASTRA_WORLD_ID=sales_world
 
 # AI drafting
 AI_API_KEY=<openai_or_compatible_key>
@@ -44,32 +73,25 @@ GOOGLE_CALENDAR_ACCESS_TOKEN=<google_oauth_access_token>
 GOOGLE_CALENDAR_ID=primary
 ```
 
-## What each connector does
+## Astra world ID
 
-- **ContactOut** supplies real prospects and email addresses. `CONTACTOUT_API_URL` is the exact ContactOut endpoint enabled for your account; `CONTACTOUT_API_TOKEN` is the API key/token from ContactOut.
-- **AI** researches/profiles the lead context you provide and drafts the outbound email.
-- **Astra** evaluates the proposed outbound action before it can reach a prospect.
-- **Resend** sends approved outbound emails and sends review-required emails to `REVIEW_EMAIL`.
-- **Google Calendar** books meetings only when the lead includes `demo_start_at` and `demo_end_at` and Astra has allowed the outbound action.
+I cannot create the Astra world from this repo unless you give the running service a real Astra key and Astra exposes a world-creation endpoint. The current documented Astra workflow endpoints assume the world already exists because the world ID is part of the URL.
 
-## Lead record shape
+Use:
 
-ContactOut or your ContactOut proxy should return leads shaped like this:
-
-```json
-{
-  "id": "lead_1",
-  "company_name": "Acme Corp",
-  "prospect_title": "CFO",
-  "email": "cfo@acme.example",
-  "prospect_email_hash": "sha256_hash",
-  "estimated_deal_value_usd": 42000,
-  "demo_start_at": "2026-07-15T15:00:00Z",
-  "demo_end_at": "2026-07-15T15:30:00Z"
-}
+```bash
+ASTRA_WORLD_ID=sales_world
 ```
 
-`demo_start_at` and `demo_end_at` are optional. If they are absent, the loop sends the approved email but skips calendar booking.
+If `sales_world` does not exist yet, create that world in Astra Cloud first, then put the same value in Railway.
+
+## What each connector does
+
+- **ContactOut** searches for finance buyers and returns verified work emails.
+- **AI** drafts the short Astra founder-style email.
+- **Astra** evaluates the proposed outbound action before it reaches a prospect.
+- **Resend** sends approved outbound emails and review-required emails.
+- **Google Calendar** books meetings only when the lead includes `demo_start_at` and `demo_end_at` and Astra has allowed the outbound action.
 
 ## Railway deployment
 
@@ -97,33 +119,3 @@ curl https://<your-railway-domain>/production-counts \
 ```
 
 Keep `LEAD_LIMIT=1` until ContactOut, Astra, Resend, and Google Calendar are verified end to end.
-
-## Outbound email style
-
-The AI drafting prompt now writes emails in the Astra founder-led style:
-
-- Short, 90-150 words.
-- Opens with a curiosity question.
-- Makes the prospect think about where they stop trusting automation.
-- Explains Astra only after the problem is clear.
-- Focuses on outcomes: automate more, reduce manual review, protect customers/money/critical systems.
-- Ends with a low-pressure conversation question instead of a demo ask.
-
-Example direction:
-
-```text
-As AI agents and workflows become more capable, what determines how much financial work you're actually willing to let them handle?
-```
-
-The point of the email is not to close the sale immediately. The point is to earn a reply by making the prospect recognize the automation-confidence problem Astra solves.
-
-
-## ContactOut URL and token
-
-Use `CONTACTOUT_API_URL` for the exact ContactOut endpoint your account is allowed to call. ContactOut's API base is `https://api.contactout.com`, and their docs show authenticated requests passing your key in a `token: <YOUR_API_TOKEN>` header. The code sends that `token` header for you; you only put the token value in Railway as `CONTACTOUT_API_TOKEN`.
-
-If you are not sure which endpoint to use, open your ContactOut API documentation/dashboard or ask ContactOut which endpoint is enabled for your token. Paste that full endpoint into `CONTACTOUT_API_URL`.
-
-## Astra world ID
-
-The code does not create an Astra world for you. `ASTRA_WORLD_ID` must already exist in Astra. If you already created a world like `sales_world`, put that exact value in Railway. If you have not created one, create it in Astra first, then set `ASTRA_WORLD_ID` to the world ID Astra gives you.

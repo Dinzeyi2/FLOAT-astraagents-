@@ -2,15 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createContactOutLeadSource, createEmailReviewQueue } from '../core/production-connectors.js';
 
-test('reads leads from a ContactOut-compatible API response', async () => {
+test('reads and normalizes leads from ContactOut People Search API', async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (_url, options) => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, 'https://api.contactout.com/v1/people/search');
+    assert.equal(options.method, 'POST');
     assert.equal(options.headers.token, 'contactout_token');
-    return new Response(JSON.stringify({ contacts: [{ id: 'lead_2', company_name: 'Beta' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    assert.deepEqual(JSON.parse(options.body).job_title, ['CFO']);
+    return new Response(JSON.stringify({ profiles: { 'https://linkedin.com/in/jane': { full_name: 'Jane Doe', title: 'CFO', company: { name: 'Acme', domain: 'acme.com' }, contact_info: { work_emails: ['jane@acme.com'] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   try {
-    const leads = await createContactOutLeadSource({ apiUrl: 'https://api.contactout.test/leads', apiToken: 'contactout_token' }).listLeads();
-    assert.equal(leads[0].company_name, 'Beta');
+    const leads = await createContactOutLeadSource({ apiToken: 'contactout_token', search: { job_title: ['CFO'] } }).listLeads();
+    assert.equal(leads[0].company_name, 'Acme');
+    assert.equal(leads[0].email, 'jane@acme.com');
+    assert.equal(leads[0].prospect_title, 'CFO');
   } finally {
     globalThis.fetch = originalFetch;
   }

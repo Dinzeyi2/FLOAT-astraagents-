@@ -1,21 +1,58 @@
 export function createContactOutLeadSource({
-  apiUrl = process.env.CONTACTOUT_API_URL,
-  apiToken = process.env.CONTACTOUT_API_TOKEN
+  apiUrl = process.env.CONTACTOUT_API_URL ?? 'https://api.contactout.com/v1/people/search',
+  apiToken = process.env.CONTACTOUT_API_TOKEN,
+  search = contactOutSearchFromEnv()
 } = {}) {
   if (!apiUrl) throw new Error('CONTACTOUT_API_URL is required for ContactOut lead sourcing.');
   if (!apiToken) throw new Error('CONTACTOUT_API_TOKEN is required for ContactOut lead sourcing.');
   return {
     async listLeads() {
-      const response = await fetch(apiUrl, { headers: { token: apiToken, accept: 'application/json' } });
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json', token: apiToken },
+        body: JSON.stringify(search)
+      });
       if (!response.ok) throw new Error(`ContactOut lead source failed with ${response.status}: ${await response.text()}`);
-      const payload = await response.json();
-      return payload.leads ?? payload.contacts ?? payload.data ?? [];
+      return normalizeContactOutProfiles(await response.json());
     }
   };
 }
 
 export function createLeadSourceFromEnv() {
   return createContactOutLeadSource();
+}
+
+export function contactOutSearchFromEnv() {
+  return {
+    page: Number(process.env.CONTACTOUT_PAGE ?? 1),
+    page_size: Number(process.env.CONTACTOUT_PAGE_SIZE ?? 25),
+    job_title: csv(process.env.CONTACTOUT_JOB_TITLES ?? 'Head of Finance,VP Finance,Director of Finance,CFO'),
+    seniority: csv(process.env.CONTACTOUT_SENIORITY ?? 'director,vice president,cxo'),
+    location: csv(process.env.CONTACTOUT_LOCATIONS ?? ''),
+    industry: csv(process.env.CONTACTOUT_INDUSTRIES ?? 'Financial Services,Fintech,Software'),
+    data_types: ['work_email'],
+    reveal_info: true,
+    current_titles_only: true
+  };
+}
+
+export function normalizeContactOutProfiles(payload) {
+  const rawProfiles = Array.isArray(payload.profiles) ? payload.profiles : Object.entries(payload.profiles ?? {}).map(([linkedinUrl, profile]) => ({ ...profile, linkedin_url: linkedinUrl }));
+  return rawProfiles.map((profile, index) => {
+    const workEmail = first(profile.contact_info?.work_emails) ?? first(profile.work_email) ?? first(profile.email);
+    return {
+      id: profile.id ?? profile.li_vanity ?? profile.linkedin_url ?? `contactout_${index}`,
+      company_name: profile.company?.name ?? profile.company_name ?? profile.company,
+      company_domain: profile.company?.domain,
+      prospect_title: profile.title ?? profile.headline ?? profile.job_title,
+      full_name: profile.full_name ?? profile.name,
+      email: workEmail,
+      prospect_email_hash: profile.linkedin_url ?? profile.url ?? profile.li_vanity ?? workEmail,
+      linkedin_url: profile.linkedin_url ?? profile.url,
+      estimated_deal_value_usd: Number(process.env.DEFAULT_DEAL_VALUE_USD ?? 42000),
+      raw_contactout_profile: profile
+    };
+  }).filter((lead) => lead.company_name && lead.prospect_title && lead.email);
 }
 
 export function createGoogleCalendarClient({ token = process.env.GOOGLE_CALENDAR_ACCESS_TOKEN, calendarId = process.env.GOOGLE_CALENDAR_ID ?? 'primary' } = {}) {
@@ -75,4 +112,12 @@ export function createProductionDecisionCounts({ astra }) {
       };
     }
   };
+}
+
+function csv(value) {
+  return value.split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+function first(value) {
+  return Array.isArray(value) ? value[0] : value;
 }
