@@ -118,3 +118,29 @@ curl https://<your-railway-domain>/production-counts \
 ```
 
 Keep `LEAD_LIMIT=1` until ContactOut, Astra, Resend, and Calendly-link sending are verified end to end.
+
+## Railway HTTP endpoints
+
+If Railway is running the latest code, these endpoints should not return 404:
+
+```bash
+GET  /health
+GET  /routes
+POST /run-real-sales-loop
+POST /run-agents
+GET  /run-agents
+POST /send-emails
+GET  /production-counts
+GET  /metrics
+GET  /read-replies
+```
+
+`/run-real-sales-loop`, `/run-agents`, `/send-emails`, `/production-counts`, `/metrics`, and `/read-replies` require:
+
+```http
+Authorization: Bearer <RUN_TOKEN>
+```
+
+`/read-replies` currently returns `501` until a Resend inbound webhook or mailbox provider is connected. It exists so external checks do not get a 404 and can see the missing reply-ingestion step explicitly.
+
+If these routes still return 404 on Railway, Railway is not running this server build. Redeploy the latest commit and confirm the start command is `npm start`.
