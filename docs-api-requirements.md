@@ -21,7 +21,7 @@ RUN_TOKEN=<long_random_token>
 LEAD_LIMIT=1
 
 # ContactOut lead source
-CONTACTOUT_API_URL=<contactout_or_proxy_endpoint>
+CONTACTOUT_API_URL=https://api.contactout.com/v1/<your-enabled-endpoint>
 CONTACTOUT_API_TOKEN=<contactout_token>
 
 # Astra
@@ -46,7 +46,7 @@ GOOGLE_CALENDAR_ID=primary
 
 ## What each connector does
 
-- **ContactOut** supplies real prospects and email addresses.
+- **ContactOut** supplies real prospects and email addresses. `CONTACTOUT_API_URL` is the exact ContactOut endpoint enabled for your account; `CONTACTOUT_API_TOKEN` is the API key/token from ContactOut.
 - **AI** researches/profiles the lead context you provide and drafts the outbound email.
 - **Astra** evaluates the proposed outbound action before it can reach a prospect.
 - **Resend** sends approved outbound emails and sends review-required emails to `REVIEW_EMAIL`.
@@ -116,3 +116,14 @@ As AI agents and workflows become more capable, what determines how much financi
 ```
 
 The point of the email is not to close the sale immediately. The point is to earn a reply by making the prospect recognize the automation-confidence problem Astra solves.
+
+
+## ContactOut URL and token
+
+Use `CONTACTOUT_API_URL` for the exact ContactOut endpoint your account is allowed to call. ContactOut's API base is `https://api.contactout.com`, and their docs show authenticated requests passing your key in a `token: <YOUR_API_TOKEN>` header. The code sends that `token` header for you; you only put the token value in Railway as `CONTACTOUT_API_TOKEN`.
+
+If you are not sure which endpoint to use, open your ContactOut API documentation/dashboard or ask ContactOut which endpoint is enabled for your token. Paste that full endpoint into `CONTACTOUT_API_URL`.
+
+## Astra world ID
+
+The code does not create an Astra world for you. `ASTRA_WORLD_ID` must already exist in Astra. If you already created a world like `sales_world`, put that exact value in Railway. If you have not created one, create it in Astra first, then set `ASTRA_WORLD_ID` to the world ID Astra gives you.

@@ -5,7 +5,7 @@ import { createContactOutLeadSource, createEmailReviewQueue } from '../core/prod
 test('reads leads from a ContactOut-compatible API response', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (_url, options) => {
-    assert.equal(options.headers.authorization, 'Bearer contactout_token');
+    assert.equal(options.headers.token, 'contactout_token');
     return new Response(JSON.stringify({ contacts: [{ id: 'lead_2', company_name: 'Beta' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   try {

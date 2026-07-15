@@ -6,7 +6,7 @@ export function createContactOutLeadSource({
   if (!apiToken) throw new Error('CONTACTOUT_API_TOKEN is required for ContactOut lead sourcing.');
   return {
     async listLeads() {
-      const response = await fetch(apiUrl, { headers: { authorization: `Bearer ${apiToken}`, accept: 'application/json' } });
+      const response = await fetch(apiUrl, { headers: { token: apiToken, accept: 'application/json' } });
       if (!response.ok) throw new Error(`ContactOut lead source failed with ${response.status}: ${await response.text()}`);
       const payload = await response.json();
       return payload.leads ?? payload.contacts ?? payload.data ?? [];
