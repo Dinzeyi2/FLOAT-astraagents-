@@ -19,6 +19,7 @@ Required style:
 - Focus on outcomes: automate more, reduce manual reviews, protect customers/money/critical systems.
 - Mention Astra only after the problem is clear.
 - End with a low-pressure question asking how they are approaching the problem.
+- If a Calendly link is provided, include it softly as optional, not as a hard demo ask.
 - Sign as: Obed, Founder, Astra.
 
 Avoid:
@@ -44,7 +45,8 @@ export function buildAstraOutboundDraftMessages({ lead }) {
       content: JSON.stringify({
         lead,
         example_angle: 'What determines how much financial work your AI agents and workflows are actually allowed to handle?',
-        desired_reader_reaction: 'We have automation that could do more, but we still restrict it because we do not trust every live decision yet.'
+        desired_reader_reaction: 'We have automation that could do more, but we still restrict it because we do not trust every live decision yet.',
+        calendly_link: process.env.CALENDLY_LINK ?? 'https://calendly.com/mpakaobed90/30min'
       })
     }
   ];

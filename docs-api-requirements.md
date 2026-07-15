@@ -8,7 +8,7 @@ ContactOut People Search API
 → Astra evaluates proposed action
 → Resend sends only if Astra returns ready_for_reality
 → Review-required/blocked items go to email
-→ Google Calendar books demos when a demo window exists
+→ Email includes your Calendly link for booking
 → Astra records outcomes and production decision counts
 ```
 
@@ -69,8 +69,7 @@ EMAIL_FROM=sales@yourdomain.com
 REVIEW_EMAIL=founder@yourdomain.com
 
 # Google Calendar
-GOOGLE_CALENDAR_ACCESS_TOKEN=<google_oauth_access_token>
-GOOGLE_CALENDAR_ID=primary
+CALENDLY_LINK=https://calendly.com/mpakaobed90/30min
 ```
 
 ## Astra world ID
@@ -91,7 +90,7 @@ If `sales_world` does not exist yet, create that world in Astra Cloud first, the
 - **AI** drafts the short Astra founder-style email.
 - **Astra** evaluates the proposed outbound action before it reaches a prospect.
 - **Resend** sends approved outbound emails and review-required emails.
-- **Google Calendar** books meetings only when the lead includes `demo_start_at` and `demo_end_at` and Astra has allowed the outbound action.
+- **Calendly** handles booking through your link: `https://calendly.com/mpakaobed90/30min`. No Google Calendar API is required.
 
 ## Railway deployment
 
@@ -118,4 +117,4 @@ curl https://<your-railway-domain>/production-counts \
   -H "Authorization: Bearer $RUN_TOKEN"
 ```
 
-Keep `LEAD_LIMIT=1` until ContactOut, Astra, Resend, and Google Calendar are verified end to end.
+Keep `LEAD_LIMIT=1` until ContactOut, Astra, Resend, and Calendly-link sending are verified end to end.

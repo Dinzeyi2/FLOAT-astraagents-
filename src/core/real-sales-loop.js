@@ -1,7 +1,7 @@
 import { createAstraClient, evaluateThenMaybeExecute } from './astra-client.js';
 import { buildAstraOutboundDraftMessages } from './email-positioning.js';
 import { SALES_FINANCE_SCHEMA, SALES_WORKFLOW_ID } from './sales-team.js';
-import { createGoogleCalendarClient, createLeadSourceFromEnv, createProductionDecisionCounts, createReviewQueueFromEnv } from './production-connectors.js';
+import { createLeadSourceFromEnv, createProductionDecisionCounts, createReviewQueueFromEnv } from './production-connectors.js';
 
 export function buildOutboundEmailAction({ lead, agentId = 'sales-rep-001', draft }) {
   return {
@@ -29,7 +29,7 @@ export async function draftPersonalizedEmail({ lead, ai }) {
   return ai.draftEmail({ lead });
 }
 
-export async function runCuratedLeadOutboundLoop({ lead, astra, ai, email, calendar, reviewQueue, counts, agentId = 'sales-rep-001' }) {
+export async function runCuratedLeadOutboundLoop({ lead, astra, ai, email, reviewQueue, counts, agentId = 'sales-rep-001' }) {
   assertLeadIsSendable(lead);
   const draft = await draftPersonalizedEmail({ lead, ai });
   const action = buildOutboundEmailAction({ lead, agentId, draft });
@@ -39,17 +39,16 @@ export async function runCuratedLeadOutboundLoop({ lead, astra, ai, email, calen
     workflowId: SALES_WORKFLOW_ID,
     action,
     executeRealAction: async (route) => {
+      const message = withCalendlyLink(draft);
       const sendResult = await email.send({
         to: lead.email,
-        subject: draft.subject,
-        html: draft.html ?? draft.body,
-        text: draft.body,
+        subject: message.subject,
+        html: message.html ?? message.body,
+        text: message.body,
         tags: [{ name: 'astra_route', value: route.reality_route }, { name: 'lead_id', value: lead.id }]
       });
-      const astraResult = { route };
-      const calendarResult = calendar ? await calendar.bookDemo({ lead, draft, sendResult, astraResult }) : undefined;
       const productionCounts = counts ? await counts.read() : undefined;
-      return { outcome: sendResult.outcome ?? 'successful', sendResult, calendarResult, productionCounts };
+      return { outcome: sendResult.outcome ?? 'successful', sendResult, productionCounts };
     },
     sendToReview: async (route) => {
       await reviewQueue.create({ lead, draft, route, action });
@@ -123,10 +122,20 @@ export function createProductionLoopFromEnv() {
     astra,
     ai: createOpenAICompatibleDraftClient(),
     email,
-    calendar: createGoogleCalendarClient(),
     reviewQueue: createReviewQueueFromEnv({ email }),
     counts: createProductionDecisionCounts({ astra })
   };
+}
+
+
+function withCalendlyLink(draft) {
+  const calendlyLink = process.env.CALENDLY_LINK ?? 'https://calendly.com/mpakaobed90/30min';
+  if (!calendlyLink || draft.body?.includes(calendlyLink)) return draft;
+  const body = `${draft.body}
+
+If it is useful to compare notes, you can grab 30 minutes here: ${calendlyLink}`;
+  const html = draft.html ? `${draft.html}<p>If it is useful to compare notes, you can grab 30 minutes here: <a href="${calendlyLink}">${calendlyLink}</a></p>` : body;
+  return { ...draft, body, html };
 }
 
 function assertLeadIsSendable(lead) {

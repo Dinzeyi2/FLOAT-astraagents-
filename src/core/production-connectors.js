@@ -55,28 +55,6 @@ export function normalizeContactOutProfiles(payload) {
   }).filter((lead) => lead.company_name && lead.prospect_title && lead.email);
 }
 
-export function createGoogleCalendarClient({ token = process.env.GOOGLE_CALENDAR_ACCESS_TOKEN, calendarId = process.env.GOOGLE_CALENDAR_ID ?? 'primary' } = {}) {
-  if (!token) throw new Error('GOOGLE_CALENDAR_ACCESS_TOKEN is required for real calendar booking.');
-  return {
-    async bookDemo({ lead }) {
-      if (!lead.demo_start_at || !lead.demo_end_at) return { skipped: true, reason: 'No demo window on lead.' };
-      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          summary: `Astra demo with ${lead.company_name}`,
-          description: `Booked by Astra-gated autonomous sales loop for ${lead.prospect_title}.`,
-          start: { dateTime: lead.demo_start_at },
-          end: { dateTime: lead.demo_end_at },
-          attendees: [{ email: lead.email }]
-        })
-      });
-      if (!response.ok) throw new Error(`Google Calendar booking failed with ${response.status}: ${await response.text()}`);
-      return response.json();
-    }
-  };
-}
-
 export function createEmailReviewQueue({ email, to = process.env.REVIEW_EMAIL, from = process.env.EMAIL_FROM } = {}) {
   if (!email) throw new Error('An email client is required for the email review queue.');
   if (!to) throw new Error('REVIEW_EMAIL is required for the email review queue.');

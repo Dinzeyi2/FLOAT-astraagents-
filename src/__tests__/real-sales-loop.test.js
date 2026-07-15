@@ -29,12 +29,11 @@ test('sends email only after Astra returns ready_for_reality and reports outcome
     reportWorkflowOutcome: async (_workflowId, outcome) => events.push(['outcome', outcome.outcome])
   };
   const ai = { draftEmail: async () => draft };
-  const email = { send: async () => { events.push(['send']); return { outcome: 'successful', provider_id: 'email_1' }; } };
-  const calendar = { bookDemo: async () => events.push(['calendar']) };
+  const email = { send: async (message) => { events.push(['send']); assert.match(message.text, /calendly.com\/mpakaobed90\/30min/); return { outcome: 'successful', provider_id: 'email_1' }; } };
   const counts = { read: async () => { events.push(['counts']); return { total: 1 }; } };
   const reviewQueue = { create: async () => events.push(['review']) };
-  await runCuratedLeadOutboundLoop({ lead: { ...lead, demo_start_at: '2026-07-15T15:00:00Z', demo_end_at: '2026-07-15T15:30:00Z' }, astra, ai, email, calendar, counts, reviewQueue });
-  assert.deepEqual(events, [['send'], ['calendar'], ['counts'], ['outcome', 'successful']]);
+  await runCuratedLeadOutboundLoop({ lead, astra, ai, email, counts, reviewQueue });
+  assert.deepEqual(events, [['send'], ['counts'], ['outcome', 'successful']]);
 });
 
 test('routes review_required email drafts to review without sending', async () => {
