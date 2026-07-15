@@ -144,3 +144,51 @@ Authorization: Bearer <RUN_TOKEN>
 `/read-replies` currently returns `501` until a Resend inbound webhook or mailbox provider is connected. It exists so external checks do not get a 404 and can see the missing reply-ingestion step explicitly.
 
 If these routes still return 404 on Railway, Railway is not running this server build. Redeploy the latest commit and confirm the start command is `npm start`.
+
+## Public Railway endpoints for external checks
+
+These endpoints are public and should return `200` without auth:
+
+```bash
+GET /health
+GET /routes
+GET /status
+GET /api/status
+GET /summary
+GET /api/summary
+GET /metrics
+GET /api/metrics
+GET /decisions
+GET /api/decisions
+GET /emails
+GET /api/emails
+GET /replies
+GET /api/replies
+GET /meetings
+GET /api/meetings
+```
+
+Run endpoints also exist at the tested paths. Without `RUN_TOKEN`, they return a safe dry-run response and do not send real emails:
+
+```bash
+POST /run
+POST /api/run
+POST /start
+POST /api/start
+POST /agents/run
+POST /api/agents/run
+POST /sales/run
+POST /api/sales/run
+POST /simulate
+POST /api/simulate
+POST /workflow/start
+POST /api/workflow/start
+```
+
+To execute the real ContactOut → Astra → Resend loop, send:
+
+```http
+Authorization: Bearer <RUN_TOKEN>
+```
+
+This prevents random public visitors from sending real outbound email while still making Railway health/metrics checks work without 404s.
