@@ -34,6 +34,20 @@ token: <YOUR_API_TOKEN>
 
 The code now posts a search body with finance buyer filters and normalizes ContactOut `profiles` into leads.
 
+
+## ContactOut filter safety
+
+The Railway crash happened because ContactOut rejected the old default seniority values (`director,vice president,cxo`) with HTTP 400. The app now **does not send seniority or industry filters by default**, even if old Railway variables are still present.
+
+Use the safe production default first:
+
+```bash
+CONTACTOUT_INCLUDE_SENIORITY=false
+CONTACTOUT_INCLUDE_INDUSTRY=false
+```
+
+Only switch either flag to `true` after ContactOut confirms the exact accepted values for your account. If ContactOut returns another 400, the server returns a JSON 502 error instead of crashing the Railway container.
+
 ## Railway environment
 
 ```bash
@@ -46,9 +60,12 @@ LEAD_LIMIT=1
 CONTACTOUT_API_URL=https://api.contactout.com/v1/people/search
 CONTACTOUT_API_TOKEN=<contactout_token>
 CONTACTOUT_JOB_TITLES=Head of Finance,VP Finance,Director of Finance,CFO
-CONTACTOUT_SENIORITY=director,vice president,cxo
+# Optional filters are disabled by default because ContactOut rejects invalid seniority/industry values.
+CONTACTOUT_INCLUDE_SENIORITY=false
+CONTACTOUT_SENIORITY=
 CONTACTOUT_LOCATIONS=
-CONTACTOUT_INDUSTRIES=Financial Services,Fintech,Software
+CONTACTOUT_INCLUDE_INDUSTRY=false
+CONTACTOUT_INDUSTRIES=
 CONTACTOUT_PAGE=1
 CONTACTOUT_PAGE_SIZE=25
 DEFAULT_DEAL_VALUE_USD=42000

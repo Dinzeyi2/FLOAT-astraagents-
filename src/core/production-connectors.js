@@ -23,17 +23,17 @@ export function createLeadSourceFromEnv() {
 }
 
 export function contactOutSearchFromEnv() {
-  return {
+  return compactSearch({
     page: Number(process.env.CONTACTOUT_PAGE ?? 1),
     page_size: Number(process.env.CONTACTOUT_PAGE_SIZE ?? 25),
     job_title: csv(process.env.CONTACTOUT_JOB_TITLES ?? 'Head of Finance,VP Finance,Director of Finance,CFO'),
-    seniority: csv(process.env.CONTACTOUT_SENIORITY ?? 'director,vice president,cxo'),
+    seniority: optionalContactOutFilter('CONTACTOUT_INCLUDE_SENIORITY', 'CONTACTOUT_SENIORITY'),
     location: csv(process.env.CONTACTOUT_LOCATIONS ?? ''),
-    industry: csv(process.env.CONTACTOUT_INDUSTRIES ?? 'Financial Services,Fintech,Software'),
+    industry: optionalContactOutFilter('CONTACTOUT_INCLUDE_INDUSTRY', 'CONTACTOUT_INDUSTRIES'),
     data_types: ['work_email'],
     reveal_info: true,
     current_titles_only: true
-  };
+  });
 }
 
 export function normalizeContactOutProfiles(payload) {
@@ -90,6 +90,17 @@ export function createProductionDecisionCounts({ astra }) {
       };
     }
   };
+}
+
+function optionalContactOutFilter(includeEnvName, valueEnvName) {
+  if (process.env[includeEnvName] !== 'true') return [];
+  return csv(process.env[valueEnvName] ?? '');
+}
+
+function compactSearch(search) {
+  return Object.fromEntries(
+    Object.entries(search).filter(([, value]) => !Array.isArray(value) || value.length > 0)
+  );
 }
 
 function csv(value) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createContactOutLeadSource, createEmailReviewQueue } from '../core/production-connectors.js';
+import { contactOutSearchFromEnv, createContactOutLeadSource, createEmailReviewQueue } from '../core/production-connectors.js';
 
 test('reads and normalizes leads from ContactOut People Search API', async () => {
   const originalFetch = globalThis.fetch;
@@ -18,6 +18,32 @@ test('reads and normalizes leads from ContactOut People Search API', async () =>
     assert.equal(leads[0].prospect_title, 'CFO');
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+
+test('omits ContactOut seniority and industry unless explicitly enabled', () => {
+  const original = {
+    CONTACTOUT_INCLUDE_SENIORITY: process.env.CONTACTOUT_INCLUDE_SENIORITY,
+    CONTACTOUT_SENIORITY: process.env.CONTACTOUT_SENIORITY,
+    CONTACTOUT_INCLUDE_INDUSTRY: process.env.CONTACTOUT_INCLUDE_INDUSTRY,
+    CONTACTOUT_INDUSTRIES: process.env.CONTACTOUT_INDUSTRIES
+  };
+  process.env.CONTACTOUT_INCLUDE_SENIORITY = 'false';
+  process.env.CONTACTOUT_SENIORITY = 'director,vice president,cxo';
+  process.env.CONTACTOUT_INCLUDE_INDUSTRY = 'false';
+  process.env.CONTACTOUT_INDUSTRIES = 'Financial Services,Fintech,Software';
+
+  try {
+    const search = contactOutSearchFromEnv();
+    assert.equal('seniority' in search, false);
+    assert.equal('industry' in search, false);
+    assert.deepEqual(search.job_title, ['Head of Finance', 'VP Finance', 'Director of Finance', 'CFO']);
+  } finally {
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 });
 

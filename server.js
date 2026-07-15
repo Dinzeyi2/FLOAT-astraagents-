@@ -29,8 +29,8 @@ createServer(async (req, res) => {
     if (emailRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicEmails());
     if (replyRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicReplies());
     if (meetingRoutes.has(pathname) && req.method === 'GET') return json(res, 200, publicMeetings());
-    if (metricsRoutes.has(pathname) && req.method === 'GET') return readProductionCounts(req, res);
-    if (runRoutes.has(pathname) && ['GET', 'POST'].includes(req.method)) return runRealSalesLoop(req, res, pathname);
+    if (metricsRoutes.has(pathname) && req.method === 'GET') return await readProductionCounts(req, res);
+    if (runRoutes.has(pathname) && ['GET', 'POST'].includes(req.method)) return await runRealSalesLoop(req, res, pathname);
 
     const path = pathname === '/' ? 'index.html' : pathname.slice(1);
     const body = await readFile(join(process.cwd(), path));
@@ -51,18 +51,28 @@ async function runRealSalesLoop(req, res, pathname) {
   automationState.running = true;
   automationState.lastStartedAt = new Date().toISOString();
 
-  const production = createProductionLoopFromEnv();
-  const leads = await production.leadSource.listLeads();
-  const limit = Number(process.env.LEAD_LIMIT ?? 1);
-  const selectedLeads = leads.slice(0, limit);
-  const results = [];
+  try {
+    const production = createProductionLoopFromEnv();
+    const leads = await production.leadSource.listLeads();
+    const limit = Number(process.env.LEAD_LIMIT ?? 1);
+    const selectedLeads = leads.slice(0, limit);
+    const results = [];
 
-  for (const lead of selectedLeads) {
-    results.push(await runCuratedLeadOutboundLoop({ lead, ...production }));
+    for (const lead of selectedLeads) {
+      results.push(await runCuratedLeadOutboundLoop({ lead, ...production }));
+    }
+
+    automationState.lastRun = { processed: selectedLeads.length, finishedAt: new Date().toISOString() };
+    return json(res, 200, { mode: 'real', running: automationState.running, processed: selectedLeads.length, results });
+  } catch (error) {
+    automationState.running = false;
+    automationState.lastRun = { error: error.message, finishedAt: new Date().toISOString() };
+    return json(res, 502, {
+      error: 'Real agent run failed before any more work could continue.',
+      details: error.message,
+      hint: 'Check ContactOut credentials and filters. Seniority and industry are not sent unless CONTACTOUT_INCLUDE_SENIORITY=true or CONTACTOUT_INCLUDE_INDUSTRY=true.'
+    });
   }
-
-  automationState.lastRun = { processed: selectedLeads.length, finishedAt: new Date().toISOString() };
-  return json(res, 200, { mode: 'real', running: automationState.running, processed: selectedLeads.length, results });
 }
 
 function stopAgents(req, res) {
