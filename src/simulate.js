@@ -1,2 +1,2 @@
-import { simulateBusinessDay } from './core/simulator.js';
-console.log(JSON.stringify(simulateBusinessDay(), null, 2));
+import { simulateXOpportunityDay } from './core/x-growth.js';
+console.log(JSON.stringify(simulateXOpportunityDay(), null, 2));

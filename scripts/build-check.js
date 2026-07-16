@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises';
-import { simulateBusinessDay } from '../src/core/simulator.js';
+import { simulateXOpportunityDay } from '../src/core/x-growth.js';
 
 await Promise.all(['index.html', 'src/main.js', 'src/styles.css'].map((file) => access(file)));
-const summary = simulateBusinessDay();
-if (summary.agents !== 100 || summary.total !== 100000) throw new Error('Autonomous sales operating metric must be exactly 100 reps and 100,000 daily decisions.');
-console.log(`Build check passed: ${summary.agents} sales reps route ${summary.total.toLocaleString()} daily decisions through Astra.`);
+const summary = simulateXOpportunityDay();
+if (summary.opportunities !== 10000) throw new Error('Autonomous X operating metric must be exactly 10,000 daily opportunities.');
+console.log(`Build check passed: agent evaluates ${summary.opportunities.toLocaleString()} daily X opportunities.`);

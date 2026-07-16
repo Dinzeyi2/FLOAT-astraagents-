@@ -16,4 +16,4 @@ h1 { font-size: clamp(44px, 7vw, 82px); line-height: .92; margin: 14px 0; } h2 {
 .control-panel input { width: min(520px, 100%); padding: 14px 16px; border-radius: 14px; border: 1px solid #29465c; background: #071017; color: #e8f2ff; margin: 10px 0 16px; }
 button { background: #79f2c0; color: #071017; border: 0; cursor: pointer; padding: 14px 18px; border-radius: 999px; font-weight: 800; }
 .secondary-button { background: transparent; color: #e8f2ff; border: 1px solid #29465c; }
-pre { white-space: pre-wrap; background: rgba(7,16,23,.72); color: #b7c7d8; border-radius: 18px; padding: 16px; overflow: auto; }
+pre { white-space: pre-wrap; background: rgba(7,16,23,.72); color: #b7c7d8; border-radius: 18px; padding: 16px; overflow: auto; } code { color: #79f2c0; }
